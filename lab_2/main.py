@@ -1,3 +1,5 @@
+import numpy as np
+
 from lab_1.gradient_descent import *
 from lab_1.functions import *
 
@@ -11,7 +13,6 @@ def newton(
         iter_bound=1000,
         eps=CONST_EPS_STOP
 ):
-    print("NEWTON")
     if step_params is None:
         step_params = {}
 
@@ -36,6 +37,49 @@ def newton(
     return points, max_x, max_y, iter_bound
 
 
+def bfgs(
+        f_obj: Function,
+        x0,
+        step_type='fixed',
+        stop_type='var',
+        step_params=None,
+        iter_bound=1000,
+        eps=CONST_EPS_STOP
+):
+    if step_params is None:
+        step_params = {}
+
+    step_func = get_step_function(step_type, **step_params)
+    x = np.array(x0, dtype=float)
+    b = np.eye(2)
+    points = []
+    max_x, max_y = 0.0, 0.0
+
+    for i in range(iter_bound):
+        points.append(x.copy())
+        grad_x = f_obj.grad(x)
+        direction = - b @ grad_x
+        alpha = step_func(f_obj, x, i)
+        delta = alpha * direction
+        x = x + delta
+        max_x = max(abs(x[0] + delta[0]), max_x)
+        max_y = max(abs(x[1] + delta[1]), max_y)
+
+        if check_stop(f_obj, x, delta, eps, stop_type):
+            points.append(x.copy())
+            return points, max_x, max_y, i + 1
+
+        b = next_b(b, delta, f_obj.grad(x) - grad_x)
+
+    return points, max_x, max_y, iter_bound
+
+
+def next_b(b, s, y):
+    y = y.reshape(-1, 1)
+    s = s.reshape(-1, 1)
+    pho = 1 / (y.T @ s)
+    return (np.eye(2) - pho * s @ y.T) @ b @ (np.eye(2) - pho * y @ s.T) + (pho * s @ s.T)
+
 def draw(
         f_obj,
         x0,
@@ -48,7 +92,7 @@ def draw(
     if step_params is None:
         step_params = {}
 
-    points, max_x, max_y, iters = newton(
+    points, max_x, max_y, iters = bfgs(
         f_obj, x0, step_type, stop_type,
         step_params=step_params,
         iter_bound=iter_bound,
@@ -90,13 +134,13 @@ if __name__ == "__main__":
     initial_point = [-5, -5]
 
     print("=== Запуск градиентного спуска ===")
-    draw(fb, initial_point, step_type='dichotomy', stop_type='func', iter_bound=1000)
+    draw(fb, initial_point, step_type='dichotomy', stop_type='grad', iter_bound=1000)
 
-    print("\n=== Сравнение с scipy.optimize.minimize (Newton-CG) ===")
+    print("\n=== Сравнение с scipy.optimize.minimize (BFGS) ===")
     res = minimize(
         fb.f,
         np.array(initial_point, dtype=float),
-        method='Newton-CG',
+        method='BFGS',
         jac=fb.analit_grad
     )
     print("Оптимальное x:", res.x)
