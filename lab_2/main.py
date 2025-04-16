@@ -1,7 +1,9 @@
 import numpy as np
+import math
 
 from lab_1.gradient_descent import *
 from lab_1.functions import *
+import optuna
 
 
 def newton(
@@ -77,28 +79,59 @@ def bfgs(
 def next_b(b, s, y):
     y = y.reshape(-1, 1)
     s = s.reshape(-1, 1)
+    if y.T @ s == 0:
+        return b
     pho = 1 / (y.T @ s)
     return (np.eye(2) - pho * s @ y.T) @ b @ (np.eye(2) - pho * y @ s.T) + (pho * s @ s.T)
 
-def draw(
-        f_obj,
-        x0,
-        step_type='fixed',
-        stop_type='var',
-        step_params=None,
-        iter_bound=1000,
-        eps=CONST_EPS_STOP
-):
-    if step_params is None:
-        step_params = {}
 
-    points, max_x, max_y, iters = bfgs(
-        f_obj, x0, step_type, stop_type,
-        step_params=step_params,
-        iter_bound=iter_bound,
-        eps=eps
-    )
+def objective(trial, method, f_obj: Function, x0, iter_bound=1000, eps=CONST_EPS_STOP):
+    step_type = trial.suggest_categorical('step', ['fixed', 'exponential', 'polynomial', 'dichotomy', 'golden'])
+    stop_type = trial.suggest_categorical('stop', ['var', 'func', 'grad'])
+    step_params = {}
+    if step_type == 'fixed':
+        step_size = trial.suggest_float('step_size', 1e-5, 1e-2)
+        step_params['step_size'] = step_size
+    elif step_type == 'exponential':
+        lmb = trial.suggest_float('lambda', 0, 1)
+        step_params['lambda'] = lmb
+    elif step_type == 'polynomial':
+        alpha = trial.suggest_float('alpha', 0, 1)
+        beta = trial.suggest_float('beta', 0, 1)
+        step_params['alpha'] = alpha
+        step_params['beta'] = beta
+    else:
+        line_eps = trial.suggest_float('line_eps', 1e-7, 1e-2)
+        step_params['line_eps'] = line_eps
 
+    points, max_x, max_y, iters = method(f_obj, x0, step_type, stop_type, step_params, iter_bound, eps)
+    real_point, text = compare(f_obj, method)
+    return np.linalg.norm(real_point - points[-1]), iters
+    # draw(f_obj, points, max_x, max_y)
+    # write_params(f_obj, x0, step_type, stop_type, step_params, points, iters)
+
+
+def get_method(method):
+    if method == 'bfgs':
+        return bfgs
+    elif method == 'newton':
+        return newton
+    print("Unknown method")
+
+
+def optimize(f_obj, x0, method):
+    study = optuna.create_study(directions=['minimize', 'minimize'])
+    study.optimize(lambda trial: objective(trial, method=get_method(method), f_obj=f_obj, x0=x0), n_trials=30)
+    trial = study.best_trials[-1]
+    params = trial.params
+    step_params = {}
+    for param in params:
+        if param != 'step' and param != 'stop':
+            step_params[param] = params[param]
+    print("=== Подобранные гиперпараметры ===")
+    proceed(f_obj, x0, method, params['step'], params['stop'], step_params)
+
+def draw(f_obj, points, max_x, max_y):
     points = np.array(points)
     grid_points = 500
     x_lim = (-max_x - 1, max_x + 1)
@@ -116,9 +149,11 @@ def draw(
 
     plt.xlabel("x")
     plt.ylabel("y")
-    plt.title(f"Iterations: {iters}, Last point: {points[-1]}")
+    plt.title("Путь")
     plt.show()
 
+
+def write_params(f_obj, x0, step_type, stop_type, step_params, points, iters):
     print("Функция: ", f_obj.name(), "; Начальная точка: ", x0)
     print("Стратегия: ", step_type, "; Критерий остановки: ", stop_type)
     print("Величина зашумленности: ", f_obj.with_n_noise)
@@ -128,21 +163,58 @@ def draw(
     print("Число итераций:", iters)
 
 
+def proceed(
+        f_obj,
+        x0,
+        method,
+        step_type='fixed',
+        stop_type='var',
+        step_params=None,
+        iter_bound=1000,
+        eps=CONST_EPS_STOP
+):
+    if step_params is None:
+        step_params = {}
+
+    print("=== Запуск оптимизации ===")
+
+    points, max_x, max_y, iters = get_method(method)(
+        f_obj, x0, step_type, stop_type,
+        step_params=step_params,
+        iter_bound=iter_bound,
+        eps=eps
+    )
+
+    draw(f_obj, points, max_x, max_y)
+    write_params(f_obj, x0, step_type, stop_type, step_params, points, iters)
+    res_x, text = compare(f_obj, method)
+    print(text)
+
+
+def compare(f_obj, method):
+    if method == 'bfgs':
+        method = 'BFGS'
+    else:
+        method = 'Newton-CG'
+
+    result = ""
+    result += f"\n=== Сравнение с scipy.optimize.minimize ({method}) ===\n"
+    res = minimize(
+        f_obj.f,
+        np.array(initial_point, dtype=float),
+        method=method,
+        jac=f_obj.analit_grad
+    )
+    result += f"Оптимальное x: {res.x}\n"
+    result += f"Число итераций: {res.nit}\n"
+    result += f"Статус завершения: {res.message}\n"
+    return res.x, result
+
+
 # ---------------------------- Пример запуска --------------------------------
 if __name__ == "__main__":
-    fb = FBooth()
+    fb = FBadCond()
     initial_point = [-5, -5]
 
-    print("=== Запуск градиентного спуска ===")
-    draw(fb, initial_point, step_type='dichotomy', stop_type='grad', iter_bound=1000)
-
-    print("\n=== Сравнение с scipy.optimize.minimize (BFGS) ===")
-    res = minimize(
-        fb.f,
-        np.array(initial_point, dtype=float),
-        method='BFGS',
-        jac=fb.analit_grad
-    )
-    print("Оптимальное x:", res.x)
-    print("Число итераций:", res.nit)
-    print("Статус завершения:", res.message)
+    # proceed(fb, initial_point, method='bfgs', step_type='dichotomy', stop_type='func', iter_bound=1000)
+    optimize(fb, initial_point, method='newton')
