@@ -14,7 +14,7 @@ def noise(n=0, centre=CONST_CENTRE, scale=CONST_SCALE):
     return sum_noise
 
 
-# ---------------------- Численная аппроксимация градиента ------------------
+# ---------------------- Численная аппроксимация градиента, гессиана ------------------
 def numeric_grad(fun, x: np.array, delta=1e-5):
     grad_approx = np.zeros_like(x, dtype=float)
     f0 = fun(x)
@@ -26,9 +26,37 @@ def numeric_grad(fun, x: np.array, delta=1e-5):
     return grad_approx
 
 
+# TODO: check
+def numeric_hess(fun, x: np.array, delta=1e-5):
+    n = len(x)
+    hess = np.zeros((n, n))
+    fx = fun(x)
+    for i in range(n):
+        x[i] += delta
+        fxi = fun(x)
+        x[i] -= 2 * delta
+        fxj = fun(x)
+        x[i] += delta
+        hess[i, i] = (fxi - 2 * fx + fxj) / delta ** 2
+        for j in range(i + 1, n):
+            x[i] += delta
+            x[j] += delta
+            f1 = fun(x)
+            x[j] -= 2 * delta
+            f2 = fun(x)
+            x[i] -= 2 * delta
+            f3 = fun(x)
+            x[j] += 2 * delta
+            f4 = fun(x)
+            x[i] += delta
+            x[j] -= delta
+            hess[i, j] = hess[j, i] = (f1 - f2 - f4 + f3) / (4 * delta ** 2)
+    return hess
+
+
 # --------------------- Интерфейс функции -----------------------
 class Function(ABC):
-    def __init__(self, with_n_noise):
+    def __init__(self, with_n_noise=0):
         self.with_n_noise = with_n_noise
 
     @abstractmethod
@@ -46,6 +74,13 @@ class Function(ABC):
     def analit_grad(self, x: np.array):
         pass
 
+    def hess(self, x: np.array):
+        return numeric_hess(self.f, x, CONST_DELTA)
+
+    @abstractmethod
+    def analit_hess(self, x: np.array):
+        pass
+
 
 # --------------------- Классы функций -----------------------
 class FSpherical(Function):
@@ -59,6 +94,9 @@ class FSpherical(Function):
     def analit_grad(self, x: np.array):
         return np.array([2 * x[0], 2 * x[1]], dtype=float)
 
+    def analit_hess(self, x: np.array):
+        return np.array([[2, 0], [0, 2]], dtype=float)
+
 
 class FBadCond(Function):
 
@@ -70,6 +108,9 @@ class FBadCond(Function):
 
     def analit_grad(self, x: np.array):
         return np.array([2000 * x[0], 2 * x[1]], dtype=float)
+
+    def analit_hess(self, x: np.array):
+        return np.array([[2000, 0], [0, 2]], dtype=float)
 
 
 class FBooth(Function):
@@ -86,6 +127,9 @@ class FBooth(Function):
             8 * x[0] + 10 * x[1] - 38
         ])
 
+    def analit_hess(self, x: np.array):
+        return np.array([[10, 8], [8, 10]], dtype=float)
+
 
 class FHimmelblau(Function):
 
@@ -101,3 +145,8 @@ class FHimmelblau(Function):
         df_dx = 2 * g1 * (2 * x[0]) + 2 * g2
         df_dy = 2 * g1 + 2 * g2 * (2 * x[1])
         return np.array([df_dx, df_dy], dtype=float)
+
+    # TODO: count
+    def analit_hess(self, x: np.array):
+        return np.array([], dtype=float)
+

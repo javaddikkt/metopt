@@ -1,7 +1,7 @@
 import math
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
-from functions import *
+from .functions import *
 
 # ----------------------------- Константы ------------------------------------
 CONST_LMB = 1
