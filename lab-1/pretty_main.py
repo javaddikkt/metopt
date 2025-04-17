@@ -132,17 +132,27 @@ def line_search_dichotomy(f_obj, x, direction, eps=1e-5):
 
 def line_search_golden(f_obj, x, direction, eps=1e-5):
     a, b = 0, 1
-    rho = (math.sqrt(5) - 1) / 2
-    while abs(b - a) > eps:
-        x1 = a + (1 - rho) * (b - a)
-        x2 = a + rho * (b - a)
-        f1 = f_obj.f(x + x1 * direction)
-        f2 = f_obj.f(x + x2 * direction)
+    rho = 2 - (math.sqrt(5) + 1) / 2
+    x1 = a + rho * (b - a)
+    x2 = b - rho * (b - a)
+    f1 = f_obj.f(x + x1 * direction)
+    f2 = f_obj.f(x + x2 * direction)
+    while True:
         if f1 < f2:
             b = x2
+            x2 = x1
+            f2 = f1
+            x1 = a + rho * (b - a)
+            f1 = f_obj.f(x + x1 * direction)
         else:
             a = x1
-    return (a + b) / 2
+            x1 = x2
+            f1 = f2
+            x2 = b - rho * (b - a)
+            f2 = f_obj.f(x + x2 * direction)
+        if abs(b - a) <= eps:
+            break
+    return (x1 + x2) / 2
 
 
 # ------------------- Стратегии выбора длины шага ----------------------------
