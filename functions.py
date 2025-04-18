@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 import numpy as np
 
+
+# ----------------------------- Константы ------------------------------------
 CONST_DELTA = 1e-3
 CONST_CENTRE = 0
 CONST_SCALE = 10
@@ -26,7 +28,6 @@ def numeric_grad(fun, x: np.array, delta=1e-5):
     return grad_approx
 
 
-# TODO: check
 def numeric_hess(fun, x: np.array, delta=1e-5):
     n = len(x)
     hess = np.zeros((n, n))
