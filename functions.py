@@ -86,7 +86,7 @@ class Function(ABC):
 class FSpherical(Function):
 
     def name(self):
-        return "Spherical"
+        return "spherical"
 
     def f(self, x: np.array):
         return x[0] ** 2 + x[1] ** 2 + noise(self.with_n_noise)
@@ -101,7 +101,7 @@ class FSpherical(Function):
 class FBadCond(Function):
 
     def name(self):
-        return "Bad Conditionality"
+        return "bad conditionality"
 
     def f(self, x: np.array):
         return 1000 * x[0] ** 2 + x[1] ** 2 + noise(self.with_n_noise)
@@ -116,7 +116,7 @@ class FBadCond(Function):
 class FBooth(Function):
 
     def name(self):
-        return "Booth"
+        return "booth"
 
     def f(self, x: np.array):
         return (x[0] + 2 * x[1] - 7) ** 2 + (2 * x[0] + x[1] - 5) ** 2 + noise(self.with_n_noise)
@@ -134,7 +134,7 @@ class FBooth(Function):
 class FHimmelblau(Function):
 
     def name(self):
-        return "Himmelblau"
+        return "himmelblau"
 
     def f(self, x: np.array):
         return (x[0] ** 2 + x[1] - 11) ** 2 + (x[0] + x[1] ** 2 - 7) ** 2 + noise(self.with_n_noise)

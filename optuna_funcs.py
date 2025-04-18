@@ -4,9 +4,9 @@ from functions import Function
 
 
 def objective(trial, method_f, f_obj: Function, x0, compare_f):
-    step_type = trial.suggest_categorical('step', ['fixed', 'exponential', 'polynomial', 'dichotomy', 'golden'])
-    stop_type = trial.suggest_categorical('stop', ['var', 'func', 'grad'])
-    step_params = {}
+    step_type = trial.suggest_categorical('step_type', ['fixed', 'exponential', 'polynomial', 'dichotomy', 'golden'])
+    stop_type = trial.suggest_categorical('stop_type', ['var', 'func', 'grad'])
+    step_params = {'step_type': step_type, 'stop_type': stop_type}
     if step_type == 'fixed':
         step_size = trial.suggest_float('step_size', 1e-5, 1e-2)
         step_params['step_size'] = step_size
@@ -22,7 +22,7 @@ def objective(trial, method_f, f_obj: Function, x0, compare_f):
         line_eps = trial.suggest_float('line_eps', 1e-7, 1e-2)
         step_params['line_eps'] = line_eps
 
-    points, max_x, max_y, iters = method_f(f_obj, x0, step_type, stop_type, step_params)
+    points, max_x, max_y, iters = method_f(f_obj, x0, step_params)
     _method, res = compare_f(f_obj, x0, method_f)
     return iters, np.linalg.norm(res.x - points[-1])
 
