@@ -1,7 +1,6 @@
 import math
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.optimize import minimize
 
 
 def draw(f_obj, points, max_x, max_y):
@@ -26,13 +25,29 @@ def draw(f_obj, points, max_x, max_y):
     plt.show()
 
 
-def write_params(f_obj, x0, step_type, stop_type, step_params, points, iters):
-    print("Функция: ", f_obj.name(), "; Начальная точка: ", x0)
-    print("Стратегия: ", step_type, "; Критерий остановки: ", stop_type)
+def write_params(method, f_obj, x0, step_params, points, iters):
+    print("\n-----------------------------------")
+    print("Метод: ", method)
+    print("Функция: ", f_obj.name())
+    print("Начальная точка: ", x0)
     print("Величина зашумленности: ", f_obj.with_n_noise)
-    print("Гиперпараметры: ", step_params)
-    print(">>Результаты вычислений<<")
-    print("Оптимальное x:", points[-1])
+    print("--------- Гиперпараметры ----------")
+    write_hyperparams(step_params)
+    print("------ Результаты вычислений ------")
+    print("Найденный x:", points[-1])
     print("Число итераций:", iters)
+    print("-----------------------------------")
 
 
+def write_hyperparams(step_params):
+    for key, value in step_params.items():
+        print(f"{key}: {value}")
+
+
+def write_comparison(method, res):
+    print(f"\n=== Сравнение с scipy.optimize.minimize ({method}) ===")
+    print("-----------------------------------")
+    print(f"Оптимальное x: {res.x}")
+    print(f"Число итераций: {res.nit}")
+    print(f"Статус завершения: {res.message}")
+    print("-----------------------------------")

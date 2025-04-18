@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 import numpy as np
 
-
 # ----------------------------- Константы ------------------------------------
 CONST_DELTA = 1e-3
 CONST_CENTRE = 0
@@ -17,7 +16,7 @@ def noise(n=0, centre=CONST_CENTRE, scale=CONST_SCALE):
 
 
 # ---------------------- Численная аппроксимация градиента, гессиана ------------------
-def numeric_grad(fun, x: np.array, delta=1e-5):
+def numeric_grad(fun, x: np.array, delta=CONST_DELTA):
     grad_approx = np.zeros_like(x, dtype=float)
     f0 = fun(x)
     for i in range(len(x)):
@@ -28,7 +27,7 @@ def numeric_grad(fun, x: np.array, delta=1e-5):
     return grad_approx
 
 
-def numeric_hess(fun, x: np.array, delta=1e-5):
+def numeric_hess(fun, x: np.array, delta=CONST_DELTA):
     n = len(x)
     hess = np.zeros((n, n))
     fx = fun(x)
@@ -69,14 +68,14 @@ class Function(ABC):
         pass
 
     def grad(self, x: np.array):
-        return numeric_grad(self.f, x, CONST_DELTA)
+        return numeric_grad(self.f, x)
 
     @abstractmethod
     def analit_grad(self, x: np.array):
         pass
 
     def hess(self, x: np.array):
-        return numeric_hess(self.f, x, CONST_DELTA)
+        return numeric_hess(self.f, x)
 
     @abstractmethod
     def analit_hess(self, x: np.array):
@@ -147,7 +146,12 @@ class FHimmelblau(Function):
         df_dy = 2 * g1 + 2 * g2 * (2 * x[1])
         return np.array([df_dx, df_dy], dtype=float)
 
-    # TODO: count
     def analit_hess(self, x: np.array):
-        return np.array([], dtype=float)
+        g1 = x[0] ** 2 + x[1] - 11
+        g2 = x[0] + x[1] ** 2 - 7
 
+        d2f_dx2 = 4 * g1 + 8 * x[0] ** 2 + 2
+        d2f_dy2 = 2 + 4 * g2 + 8 * x[1] ** 2
+        d2f_dxdy = 4 * (x[0] + x[1])
+
+        return np.array([[d2f_dx2, d2f_dxdy], [d2f_dxdy, d2f_dy2]], dtype=float)

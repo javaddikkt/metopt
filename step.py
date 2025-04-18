@@ -2,27 +2,30 @@ import math
 import numpy as np
 
 # ----------------------------- Константы ------------------------------------
-CONST_LMB = 1
-CONST_ALP = 0.5
-CONST_BET = 1
+CONST_LAMBDA = 1
+CONST_ALPHA = 0.5
+CONST_BETA = 1
 CONST_EPS = 1e-5
 CONST_STEP = 1.25e-3
+CONST_TOL = 1e-4
 
 
 # ------------------------ Критерии остановки ---------------------------------
-def check_stop(f_obj, x, delta, eps, stop_type='var'):
+def check_stop(f_obj, x, delta, step_params):
+    stop_type = step_params.get('stop_type')
+    tol = step_params.get('tol')
     if stop_type == "var":
-        return np.linalg.norm(delta) < eps
+        return np.linalg.norm(delta) < tol
     elif stop_type == "func":
-        return abs(f_obj.f(x) - f_obj.f(x + delta)) < eps
+        return abs(f_obj.f(x) - f_obj.f(x + delta)) < tol
     elif stop_type == "grad":
-        return np.linalg.norm(f_obj.grad(x)) < eps
+        return np.linalg.norm(f_obj.grad(x)) < tol
     else:
         raise ValueError(f"Unexpected stop_type: {stop_type}")
 
 
 # ---------------------- Методы одномерного поиска ---------------------------
-def line_search_dichotomy(f_obj, x, direction, eps=1e-5):
+def line_search_dichotomy(f_obj, x, direction, eps=CONST_EPS):
     a, b = 0, 1
     while abs(b - a) > eps:
         c = (a + b) / 2
@@ -37,7 +40,7 @@ def line_search_dichotomy(f_obj, x, direction, eps=1e-5):
     return (a + b) / 2
 
 
-def line_search_golden(f_obj, x, direction, eps=1e-5):
+def line_search_golden(f_obj, x, direction, eps=CONST_EPS):
     a, b = 0, 1
     rho = 2 - (math.sqrt(5) + 1) / 2
     x1 = a + rho * (b - a)
@@ -64,55 +67,49 @@ def line_search_golden(f_obj, x, direction, eps=1e-5):
 
 # ------------------- Стратегии выбора длины шага ----------------------------
 def fixed_step(step_size=CONST_STEP):
-    def func(_f, _x, _i):
-        return step_size
-
-    return func
+    return lambda _f, _x, _k: step_size
 
 
-def exponential_step(lmb=CONST_LMB):
-    def func(_f, _x, k):
-        return (1.0 / math.sqrt(k + 1)) * math.e ** (-lmb * k)
-
-    return func
+def exponential_step(lmb=CONST_LAMBDA):
+    return lambda _f, _x, k: (1.0 / math.sqrt(k + 1)) * math.e ** (-lmb * k)
 
 
-def polynomial_step(a=CONST_ALP, b=CONST_BET):
-    def func(_f, _x, k):
-        return (1.0 / math.sqrt(k + 1)) * (b * k + 1) ** (-a)
-
-    return func
+def polynomial_step(a=CONST_ALPHA, b=CONST_BETA):
+    return lambda _f, _x, k: (1.0 / math.sqrt(k + 1)) * (b * k + 1) ** (-a)
 
 
 def dichotomy_step(eps=CONST_EPS):
-    def func(f_obj, x, _k):
-        direction = -f_obj.grad(x)
-        return line_search_dichotomy(f_obj, x, direction, eps)
-
-    return func
+    return lambda f_obj, x, _k: line_search_dichotomy(f_obj, x, -f_obj.grad(x), eps)
 
 
 def golden_step(eps=CONST_EPS):
-    def func(f_obj, x, _k):
-        direction = -f_obj.grad(x)
-        return line_search_golden(f_obj, x, direction, eps)
-
-    return func
+    return lambda f_obj, x, _k: line_search_golden(f_obj, x, -f_obj.grad(x), eps)
 
 
-def get_step_function(step_type='fixed', **kwargs):
+def get_step_function(params):
+    step_type = params.setdefault('step_type', 'fixed')
+    params.setdefault('tol', CONST_TOL)
+
     if step_type == 'fixed':
-        return fixed_step(kwargs.get('step_size', CONST_STEP))
+        step_size = params.setdefault('step_size', CONST_STEP)
+        return fixed_step(step_size)
+
     elif step_type == 'exponential':
-        return exponential_step(kwargs.get('lambda', CONST_LMB))
+        lmb = params.setdefault('lambda', CONST_LAMBDA)
+        return exponential_step(lmb)
+
     elif step_type == 'polynomial':
-        return polynomial_step(
-            a=kwargs.get('alpha', CONST_ALP),
-            b=kwargs.get('beta', CONST_BET)
-        )
+        alpha = params.setdefault('alpha', CONST_ALPHA)
+        beta = params.setdefault('beta', CONST_BETA)
+        return polynomial_step(a=alpha, b=beta)
+
     elif step_type == 'dichotomy':
-        return dichotomy_step(kwargs.get('line_eps', CONST_EPS))
+        line_eps = params.setdefault('line_eps', CONST_EPS)
+        return dichotomy_step(line_eps)
+
     elif step_type == 'golden':
-        return golden_step(kwargs.get('line_eps', CONST_EPS))
+        line_eps = params.setdefault('line_eps', CONST_EPS)
+        return golden_step(line_eps)
+
     else:
-        raise ValueError(f"Unexpected step_type: {step_type}")
+        print(f"Unexpected step_type: {step_type}")

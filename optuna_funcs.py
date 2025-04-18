@@ -3,7 +3,7 @@ import numpy as np
 from functions import Function
 
 
-def objective(trial, method_f, f_obj: Function, x0, compare_f, iter_bound=1000, eps=1e-2):
+def objective(trial, method_f, f_obj: Function, x0, compare_f):
     step_type = trial.suggest_categorical('step', ['fixed', 'exponential', 'polynomial', 'dichotomy', 'golden'])
     stop_type = trial.suggest_categorical('stop', ['var', 'func', 'grad'])
     step_params = {}
@@ -22,20 +22,13 @@ def objective(trial, method_f, f_obj: Function, x0, compare_f, iter_bound=1000, 
         line_eps = trial.suggest_float('line_eps', 1e-7, 1e-2)
         step_params['line_eps'] = line_eps
 
-    points, max_x, max_y, iters = method_f(f_obj, x0, step_type, stop_type, step_params, iter_bound, eps)
-    real_point, text = compare_f(f_obj, x0, method_f)
-    return np.linalg.norm(real_point - points[-1]), iters
+    points, max_x, max_y, iters = method_f(f_obj, x0, step_type, stop_type, step_params)
+    _method, res = compare_f(f_obj, x0, method_f)
+    return iters, np.linalg.norm(res.x - points[-1])
 
 
 def optimize(f_obj, x0, method_f, compare_f):
     study = optuna.create_study(directions=['minimize', 'minimize'])
-    study.optimize(lambda trial: objective(trial, method_f=method_f, f_obj=f_obj, x0=x0, compare_f=compare_f), n_trials=30)
+    study.optimize(lambda trial: objective(trial, method_f, f_obj, x0, compare_f), n_trials=100)
     trial = study.best_trials[-1]
-    params = trial.params
-    step_params = {}
-    for param in params:
-        if param != 'step' and param != 'stop':
-            step_params[param] = params[param]
-    return params['step'], params['stop'], step_params
-    # print("=== Подобранные гиперпараметры ===")
-    # proceed(f_obj, x0, method, params['step'], params['stop'], step_params)
+    return trial.params
