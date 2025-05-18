@@ -15,7 +15,7 @@ def minimize(
     step_func = get_step_function(step_params)
     x = np.array(x0, dtype=float)
     points = []
-   max_x, max_y = abs(float(x[0])), abs(float(x[1]))
+    max_x, max_y = abs(float(x[0])), abs(float(x[1]))
     b = step_params.get('hess', None)
 
     for i in range(ITER_BOUND):

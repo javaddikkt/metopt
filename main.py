@@ -4,8 +4,8 @@ from methods import proceed, proceed_optimized
 
 # ---------------------------- Пример запуска --------------------------------
 if __name__ == "__main__":
-    fb = FHimmelblau()
-    initial_point = [-5, -5]
+    fb = FBooth()
+    initial_point = [0, 0]
     params = {'step_type': 'dichotomy', 'stop_type': 'func'}
 
     # обычный запуск с заданными параметрами
