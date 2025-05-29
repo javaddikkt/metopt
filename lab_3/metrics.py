@@ -6,7 +6,7 @@ import math
 def rmse(y_true, y_pred):
     return math.sqrt(np.mean((y_true - y_pred) ** 2))
 
-def benchmark(x, y, cfg=None, test_split=0.2):
+def benchmark(x, y, cfg={"batch_size": 100, "reg": 'none'}, test_split=0.7):
     cfg = cfg or {}
     n = len(x)
     idx = int(n * (1 - test_split))
@@ -23,10 +23,12 @@ def benchmark(x, y, cfg=None, test_split=0.2):
     preds = x_val @ w + b
     return w, b, pd.DataFrame([
         {
-            **cfg,
+            #**cfg,
             'time_sec': dt,
             'peak_mem_mb': peak / 1024 ** 2,
             'rmse_val': rmse(y_val, preds),
-            'epochs_run': len(hist) // math.ceil(len(x_train) / trainer.batch_size)
+            'epochs_run': len(hist) // math.ceil(len(x_train) / trainer.batch_size),
+            'batch size': trainer.batch_size,
+            'reg': trainer.reg
         }
     ])

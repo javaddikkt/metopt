@@ -7,7 +7,7 @@ class sgd:
     def __init__(
             self,
             lr=1e-2,
-            batch_size=32,
+            batch_size=100,
             max_epochs=100,
             scheduler='const',
             lam=1e-3,
@@ -20,6 +20,7 @@ class sgd:
             rho=0.95,
             eps=1e-6
     ):
+        self.reg = reg
         self.batch_size = batch_size
         self.max_epochs = max_epochs
         self.stop_tol = stop_tol
@@ -63,8 +64,8 @@ class sgd:
 
         step = 0
         for i in range(self.max_epochs):
-            if i % 10 == 0:
-                print("epoch running: ", i)
+            # if i % 10 == 0:
+            #     print("epoch running: ", i)
             for xb, yb in self.batch_iter(x, y, rng):
                 m = len(xb)
                 w_t = w.reshape(1, -1)[0]
@@ -109,7 +110,7 @@ class sgd:
 
                 hist.append(j_b)
                 if self.check_stop(w_new - w, b_new - b, j_b - j):
-                    print("stopped on: ", j_b - j)
+                    #print("stopped on: ", j_b - j)
                     return w_new, b_new, hist
                 w = w_new
                 b = b_new

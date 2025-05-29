@@ -41,7 +41,13 @@ if __name__ == '__main__':
     # print(hist[-1])
 
     w, b, fb = benchmark(x.values[:10000], y.values[:10000])
-    print(w, b, fb, sep='\n')
+    print(fb, sep='\n')
+    w, b, fb = benchmark(x.values[:10000], y.values[:10000], cfg={"reg": 'l1'})
+    print(fb, sep='\n')
+    w, b, fb = benchmark(x.values[:10000], y.values[:10000], cfg={"reg": 'l2'})
+    print(fb, sep='\n')
+    w, b, fb = benchmark(x.values[:10000], y.values[:10000], cfg={"reg": 'elastic'})
+    print(fb, sep='\n')
 
     # keras_run(x.values[:10000], y.values[:10000])
     # torch_run(x.values[:10000], y.values[:10000])
